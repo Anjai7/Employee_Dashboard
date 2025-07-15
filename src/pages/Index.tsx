@@ -127,8 +127,6 @@ const Index = () => {
   };
 
   const handleSendEmail = async (employee: Employee) => {
-    const webhookUrl = import.meta.env.VITE_N8N_WEBHOOK_URL || 'http://localhost:5678/webhook/send-employee-email';
-    
     setEmailSendingStates(prev => ({ ...prev, [employee.id]: true }));
     
     try {
@@ -136,18 +134,15 @@ const Index = () => {
         name: employee.name,
         email: employee.email,
         employeeId: employee.employeeNumber || employee.id,
-        department: 'General', // Default department
+        department: 'General',
         timestamp: new Date().toISOString()
       };
 
-      const response = await axios.post(webhookUrl, payload, {
-        headers: {
-          'Authorization': 'Basic ' + btoa('admin:securepassword123'),
-          'Content-Type': 'application/json',
-          'X-Request-Source': 'employee-manager'
-        },
-        timeout: 10000
+      const { data, error } = await supabase.functions.invoke('send-employee-email', {
+        body: payload
       });
+
+      if (error) throw error;
 
       toast({
         title: "Email Sent",
@@ -157,7 +152,7 @@ const Index = () => {
       console.error('Email send error:', error);
       toast({
         title: "Email Error",
-        description: `Failed to send email to ${employee.email}. ${error.response?.data?.message || error.message}`,
+        description: `Failed to send email to ${employee.email}. ${error.message}`,
         variant: "destructive",
       });
     } finally {
