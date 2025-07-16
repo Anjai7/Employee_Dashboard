@@ -23,17 +23,27 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Received email request:', { name, email, employeeId, department, timestamp });
 
-    // For now, we'll simulate the email sending since localhost:5678 isn't accessible from edge functions
-    // You'll need to replace this with your actual n8n webhook URL or use a different email service
-    
-    // Simulate successful email sending
-    console.log('Email would be sent with payload:', {
-      name,
-      email,
-      employeeId,
-      department,
-      timestamp
+    // Send POST request to n8n webhook
+    const n8nResponse = await fetch('https://anjain8n.app.n8n.cloud/webhook/send-employee-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+        email,
+        employeeId,
+        department,
+        timestamp
+      })
     });
+
+    if (!n8nResponse.ok) {
+      throw new Error(`n8n webhook failed: ${n8nResponse.status} ${n8nResponse.statusText}`);
+    }
+
+    const n8nResult = await n8nResponse.json();
+    console.log('n8n webhook response:', n8nResult);
 
     return new Response(
       JSON.stringify({ 
